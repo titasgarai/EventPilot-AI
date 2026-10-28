@@ -14,12 +14,24 @@ export default defineConfig({
     host: true,
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          charts: ['recharts'],
-          icons: ['lucide-react'],
-          ai: ['@google/generative-ai'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('d3') || id.includes('victory-vendor')) {
+              return 'd3-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            if (id.includes('@google/generative-ai')) {
+              return 'ai';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+          }
         },
       },
     },
