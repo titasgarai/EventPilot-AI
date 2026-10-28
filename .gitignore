@@ -33,3 +33,7 @@ dist-ssr
 # Temporary / OS files
 Thumbs.db
 
+# Submission notes & credentials (do not commit)
+H2S_SUBMISSION.txt
+*submission*.txt
+

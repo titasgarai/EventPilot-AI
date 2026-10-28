@@ -349,3 +349,4 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
     ],
   };
 }
+
