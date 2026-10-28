@@ -71,7 +71,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
 
   // Expense form state
   const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState<number>(0);
+  const [expenseAmountStr, setExpenseAmountStr] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<BudgetCategory>('Catering');
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [expensePaidTo, setExpensePaidTo] = useState('');
@@ -88,7 +88,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
   const openAddModal = (presetCategory?: BudgetCategory) => {
     setEditingExpense(null);
     setExpenseTitle('');
-    setExpenseAmount(0);
+    setExpenseAmountStr('');
     setExpenseCategory(presetCategory || 'Catering');
     setExpenseDate(new Date().toISOString().split('T')[0]);
     setExpensePaidTo('');
@@ -98,7 +98,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
   const openEditModal = (exp: Expense) => {
     setEditingExpense(exp);
     setExpenseTitle(exp.title);
-    setExpenseAmount(exp.amount);
+    setExpenseAmountStr(exp.amount ? String(exp.amount) : '');
     setExpenseCategory(exp.category);
     setExpenseDate(exp.date);
     setExpensePaidTo(exp.paidTo || '');
@@ -106,8 +106,9 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
   };
 
   const handleSaveExpense = () => {
-    if (!expenseTitle.trim() || expenseAmount <= 0) {
-      showToast('Please enter an expense description and positive amount', 'error');
+    const parsedAmount = Number(expenseAmountStr.replace(/[^0-9.]/g, ''));
+    if (!expenseTitle.trim() || !parsedAmount || parsedAmount <= 0) {
+      showToast('Please enter an expense description and valid positive amount', 'error');
       return;
     }
 
@@ -118,7 +119,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
           ? {
               ...e,
               title: expenseTitle,
-              amount: expenseAmount,
+              amount: parsedAmount,
               category: expenseCategory,
               date: expenseDate,
               paidTo: expensePaidTo,
@@ -130,7 +131,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
       const newExp: Expense = {
         id: `exp-${Date.now()}`,
         title: expenseTitle,
-        amount: expenseAmount,
+        amount: parsedAmount,
         category: expenseCategory,
         date: expenseDate,
         paidTo: expensePaidTo,
@@ -542,10 +543,14 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
                 Amount ({event.currency}) <span className="text-rose-500">*</span>
               </label>
               <input
-                type="number"
-                min={1}
-                value={expenseAmount}
-                onChange={(e) => setExpenseAmount(Number(e.target.value) || 0)}
+                type="text"
+                inputMode="decimal"
+                value={expenseAmountStr}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/[^0-9.]/g, '');
+                  setExpenseAmountStr(cleaned);
+                }}
+                placeholder="e.g., 25000"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               />
             </div>

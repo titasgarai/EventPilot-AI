@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EventPlan } from '@/types';
+import { EventPlan, UserProfile } from '@/types';
 import {
   getStoredEvents,
   saveStoredEvents,
@@ -9,6 +9,8 @@ import {
   deleteEvent,
   duplicateEvent,
   resetDemoEvent,
+  getUserProfile,
+  clearUserProfile,
 } from '@/utils';
 import { Navbar, Sidebar, ActiveTab, ToastProvider, useToast, ApiKeyModal } from '@/components/common';
 import { MyEventsModal } from '@/components/events';
@@ -24,12 +26,14 @@ import {
   VendorsView,
   AIIdeasView,
   AIAssistantView,
+  WelcomeView,
 } from '@/views';
 
 function AppContent() {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => getUserProfile());
   const [events, setEvents] = useState<EventPlan[]>(() => getStoredEvents());
   const [activeEvent, setActiveEvent] = useState<EventPlan>(() => getActiveEvent());
-  const [currentTab, setCurrentTab] = useState<ActiveTab>('landing');
+  const [currentTab, setCurrentTab] = useState<ActiveTab>('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMyEventsOpen, setIsMyEventsOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
@@ -86,8 +90,31 @@ function AppContent() {
     const restored = resetDemoEvent();
     setEvents(restored);
     setActiveEvent(restored[0]);
-    showToast('Restored Ananya & Arjun Bengali Wedding demo data!', 'success');
+    showToast('Loaded Showcase Demo Event: Ananya & Arjun', 'success');
   };
+
+  const handleLogout = () => {
+    clearUserProfile();
+    setUserProfile(null);
+    showToast('Signed out of local session', 'info');
+  };
+
+  // If no user session exists, display the Welcome / Sign-In screen
+  if (!userProfile) {
+    return (
+      <WelcomeView
+        onLoginSuccess={(profile) => {
+          setUserProfile(profile);
+          setCurrentTab('dashboard');
+          showToast(`Welcome, ${profile.name}!`, 'success');
+        }}
+        onExploreDemo={() => {
+          handleResetDemo();
+          setCurrentTab('dashboard');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -95,6 +122,7 @@ function AppContent() {
       <Navbar
         activeEvent={activeEvent}
         events={events}
+        userProfile={userProfile}
         onSelectEvent={handleSelectEvent}
         onOpenMyEvents={() => setIsMyEventsOpen(true)}
         onOpenCreateEvent={() => setCurrentTab('create')}
@@ -103,6 +131,7 @@ function AppContent() {
         onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         isMobileSidebarOpen={isMobileSidebarOpen}
         onNavigateHome={() => setCurrentTab('landing')}
+        onLogout={handleLogout}
       />
 
       {/* Main Body */}

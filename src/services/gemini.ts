@@ -11,6 +11,10 @@ import {
   SmartInsight,
   ChatMessage,
   StagedLoadingStep,
+  BudgetEstimateResult,
+  VendorAdviceResult,
+  VendorCategory,
+  BudgetCategory,
 } from '../types';
 import { getCustomApiKey } from '../utils/storage';
 
@@ -803,4 +807,204 @@ GUIDELINES:
     return askEventPilotAssistant({ ...event, isDemo: true }, history, userQuestion);
   }
 }
+
+export interface EstimateBudgetInput {
+  eventType: EventType;
+  location: string;
+  guestCount: number;
+  style: EventStyle;
+  preferences?: string;
+  currency?: CurrencyCode;
+}
+
+/**
+ * GenAI "Guess My Budget with AI" estimator:
+ * Generates an intelligent, location- and guest-count-aware budget recommendation.
+ */
+export async function estimateBudgetWithAI(
+  input: EstimateBudgetInput
+): Promise<BudgetEstimateResult> {
+  const apiKey = getEffectiveApiKey();
+  const guests = Math.max(1, input.guestCount || 100);
+  const location = input.location || 'Kolkata, West Bengal';
+  const currency = input.currency || 'INR';
+  const symbol = currency === 'INR' ? '₹' : '$';
+
+  // Calculate realistic benchmark fallback based on location, style, and event type
+  const locLower = location.toLowerCase();
+  let cityMultiplier = 1.0;
+  if (locLower.includes('mumbai') || locLower.includes('delhi') || locLower.includes('bangalore') || locLower.includes('bengaluru')) {
+    cityMultiplier = 1.25;
+  } else if (locLower.includes('dubai') || locLower.includes('london') || locLower.includes('new york') || locLower.includes('singapore')) {
+    cityMultiplier = currency === 'INR' ? 2.5 : 1.2;
+  } else if (locLower.includes('goa') || locLower.includes('jaipur') || locLower.includes('udaipur')) {
+    cityMultiplier = 1.15;
+  }
+
+  let styleMultiplier = 1.0;
+  if (input.style === 'luxury') styleMultiplier = 1.8;
+  else if (input.style === 'minimal') styleMultiplier = 0.75;
+  else if (input.style === 'eco-friendly') styleMultiplier = 0.85;
+
+  let baseCateringPerGuest = 1100;
+  let totalPerGuestMultiplier = 3.3; // Total budget / catering ratio
+
+  if (input.eventType === 'birthday') {
+    baseCateringPerGuest = 700;
+    totalPerGuestMultiplier = 2.4;
+  } else if (input.eventType === 'community') {
+    baseCateringPerGuest = 450;
+    totalPerGuestMultiplier = 2.2;
+  } else if (input.eventType === 'custom') {
+    baseCateringPerGuest = 850;
+    totalPerGuestMultiplier = 2.8;
+  }
+
+  const estPerGuest = Math.round(baseCateringPerGuest * cityMultiplier * styleMultiplier);
+  const targetTotal = Math.round(estPerGuest * totalPerGuestMultiplier * guests);
+  // Round nicely to nearest 5,000 or 10,000
+  const roundedTarget = Math.round(targetTotal / 10000) * 10000;
+  const minRange = Math.round(roundedTarget * 0.85);
+  const maxRange = Math.round(roundedTarget * 1.2);
+
+  const fallbackResult: BudgetEstimateResult = {
+    minRange,
+    maxRange,
+    suggestedTarget: roundedTarget,
+    costPerGuest: Math.round(roundedTarget / guests),
+    breakdown: [
+      { category: 'Catering', estimatedAmount: Math.round(roundedTarget * 0.35), sharePercentage: 35 },
+      { category: 'Venue', estimatedAmount: Math.round(roundedTarget * 0.22), sharePercentage: 22 },
+      { category: 'Decoration', estimatedAmount: Math.round(roundedTarget * 0.13), sharePercentage: 13 },
+      { category: 'Photography', estimatedAmount: Math.round(roundedTarget * 0.10), sharePercentage: 10 },
+      { category: 'Clothing', estimatedAmount: Math.round(roundedTarget * 0.07), sharePercentage: 7 },
+      { category: 'Entertainment', estimatedAmount: Math.round(roundedTarget * 0.05), sharePercentage: 5 },
+      { category: 'Invitations', estimatedAmount: Math.round(roundedTarget * 0.02), sharePercentage: 2 },
+      { category: 'Transportation', estimatedAmount: Math.round(roundedTarget * 0.03), sharePercentage: 3 },
+      { category: 'Miscellaneous', estimatedAmount: Math.round(roundedTarget * 0.03), sharePercentage: 3 },
+    ],
+    explanation: `Calculated for a ${input.style} ${input.eventType} for ${guests} guests in ${location}. In this region, catering and hospitality typically drive ~35% of total outlay (approx ${symbol}${estPerGuest.toLocaleString()}/guest for quality food and live stations), while venue and aesthetic decor comprise the remaining core foundation.`,
+    assumptions: [
+      `Location benchmark index applied for ${location}.`,
+      `Includes standard food & beverage, banqueting service, and mineral water.`,
+      `Assumes a single-day or 2-session sequence typical for ${input.eventType}.`,
+      `Contingency buffer of ~3% factored in for unbudgeted day-of expenses.`,
+    ],
+  };
+
+  if (!apiKey) {
+    // Return reasoned contextual fallback
+    return fallbackResult;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `You are a professional event financial estimator. Estimate a realistic budget for this event:
+- Event Type: ${input.eventType}
+- Location: ${location}
+- Guests: ${guests}
+- Style: ${input.style}
+- Specific Preferences: "${input.preferences || 'Standard regional expectations'}"
+- Currency: ${currency}
+
+CRITICAL RULES:
+1. Consider the cost-of-living and vendor pricing specific to "${location}".
+2. Calculate realistic food/catering cost per guest for this event type and city.
+3. The sum of breakdown amounts should equal suggestedTarget.
+4. Categories must only be: "Venue", "Catering", "Decoration", "Photography", "Entertainment", "Clothing", "Invitations", "Transportation", "Miscellaneous".
+5. Return ONLY raw JSON without markdown formatting adhering to this schema:
+{
+  "minRange": 420000,
+  "maxRange": 580000,
+  "suggestedTarget": 500000,
+  "costPerGuest": 3333,
+  "breakdown": [
+    { "category": "Catering", "estimatedAmount": 175000, "sharePercentage": 35 }
+  ],
+  "explanation": "Detailed rationale based on location, guests, and food expectations...",
+  "assumptions": ["Assumption 1", "Assumption 2", "Assumption 3"]
+}`;
+
+    const res = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.4 },
+    });
+
+    const parsed = cleanAndParseJson<BudgetEstimateResult>(res.response.text());
+    if (parsed.suggestedTarget && parsed.breakdown && parsed.breakdown.length > 0) {
+      return parsed;
+    }
+    return fallbackResult;
+  } catch (err) {
+    console.warn('estimateBudgetWithAI error, using regional fallback', err);
+    return fallbackResult;
+  }
+}
+
+/**
+ * GenAI Vendor Advisory & Alternative Finder:
+ * Provides questions to ask, alternative supplier approaches, and negotiation tips.
+ */
+export async function getVendorAdviceWithAI(
+  category: VendorCategory,
+  event: EventPlan
+): Promise<VendorAdviceResult> {
+  const apiKey = getEffectiveApiKey();
+
+  const fallbackAdvice: VendorAdviceResult = {
+    vendorCategory: category,
+    alternativeOptions: [
+      `Independent freelance ${category.toLowerCase()} specialists with direct portfolios`,
+      `Multi-service event agency package (often bundles 10-15% discount)`,
+      `Local regional collective or academy graduates for budget-conscious quality`,
+    ],
+    selectionTips: [
+      `Always request an unedited full album or raw menu tasting session rather than a curated Instagram highlight reel.`,
+      `Confirm in writing who will personally manage your event on the day, not just the sales representative.`,
+      `Split payments into milestone tranches: 25% token, 50% on key milestone, and 25% after final delivery.`,
+    ],
+    questionsToAsk: [
+      `What is your backup contingency plan if equipment malfunctions or primary staff falls ill?`,
+      `Are electricity charges, cleaning surcharges, and setup/breakdown hours included in the quotation?`,
+      `What are the exact overtime charges if the event extends beyond schedule?`,
+    ],
+    estimatedCostRange: `Typical range in ${event.location} for ${event.guestCount} guests: ${event.currency === 'INR' ? '₹' : '$'}${Math.round(event.totalBudget * 0.08).toLocaleString()} – ${event.currency === 'INR' ? '₹' : '$'}${Math.round(event.totalBudget * 0.18).toLocaleString()}`,
+    backupPlan: `Shortlist at least 2 backup ${category.toLowerCase()} providers on standby 3 weeks before the date.`,
+  };
+
+  if (!apiKey) {
+    return fallbackAdvice;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `You are an event management consultant advising a client on hiring for the category "${category}".
+Event context: "${event.name}" (${event.type}, ${event.style}, ${event.guestCount} guests in ${event.location}, budget: ${event.currency} ${event.totalBudget}).
+
+Provide strategic hiring advice. Return raw JSON adhering to this schema:
+{
+  "vendorCategory": "${category}",
+  "alternativeOptions": ["Option 1", "Option 2", "Option 3"],
+  "selectionTips": ["Tip 1", "Tip 2", "Tip 3"],
+  "questionsToAsk": ["Question 1", "Question 2", "Question 3"],
+  "estimatedCostRange": "Range text...",
+  "backupPlan": "Contingency strategy..."
+}`;
+
+    const res = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.5 },
+    });
+
+    return cleanAndParseJson<VendorAdviceResult>(res.response.text());
+  } catch (e) {
+    console.warn('getVendorAdviceWithAI error, using fallback', e);
+    return fallbackAdvice;
+  }
+}
+
 

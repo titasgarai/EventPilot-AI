@@ -1,9 +1,10 @@
-import { EventPlan } from '../types';
+import { EventPlan, UserProfile } from '../types';
 import { DEMO_EVENT } from '../data/demoEvent';
 
 const STORAGE_KEY_EVENTS = 'eventpilot_events_v1';
 const STORAGE_KEY_ACTIVE_ID = 'eventpilot_active_id_v1';
 const STORAGE_KEY_CUSTOM_API_KEY = 'eventpilot_gemini_key_v1';
+const STORAGE_KEY_USER_PROFILE = 'eventpilot_user_v1';
 
 export function getStoredEvents(): EventPlan[] {
   try {
@@ -134,3 +135,29 @@ export function setCustomApiKey(key: string): void {
   }
 }
 
+export function getUserProfile(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_USER_PROFILE);
+    if (!raw) return null;
+    return JSON.parse(raw) as UserProfile;
+  } catch (e) {
+    console.error('Failed to read user profile', e);
+    return null;
+  }
+}
+
+export function saveUserProfile(profile: UserProfile): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_USER_PROFILE, JSON.stringify(profile));
+  } catch (e) {
+    console.error('Failed to save user profile', e);
+  }
+}
+
+export function clearUserProfile(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY_USER_PROFILE);
+  } catch (e) {
+    console.error('Failed to clear user profile', e);
+  }
+}

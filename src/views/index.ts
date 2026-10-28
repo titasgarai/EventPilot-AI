@@ -7,4 +7,5 @@ export * from './TimelineView';
 export * from './VendorsView';
 export * from './AIIdeasView';
 export * from './AIAssistantView';
+export * from './WelcomeView';
 

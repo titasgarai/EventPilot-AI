@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import {
   Calendar,
   Sparkles,
@@ -11,6 +11,12 @@ import {
   MessageSquare,
   Check,
   CheckCircle2,
+  DollarSign,
+  HeartHandshake,
+  Cake,
+  Building2,
+  HelpCircle,
+  Lightbulb,
 } from 'lucide-react';
 import {
   EventType,
@@ -22,6 +28,7 @@ import {
 } from '../types';
 import { CreateEventInput, generateEventPlanWithAI } from '../services/gemini';
 import { StagedGenerationModal } from '../components/common/StagedGenerationModal';
+import { BudgetEstimatorModal } from '../components/common/BudgetEstimatorModal';
 import { useToast } from '../components/common/Toast';
 
 interface CreateEventViewProps {
@@ -29,10 +36,29 @@ interface CreateEventViewProps {
   onCancel: () => void;
 }
 
+const CITY_SUGGESTIONS = [
+  'Kolkata, West Bengal',
+  'Mumbai, Maharashtra',
+  'Delhi NCR, India',
+  'Bengaluru, Karnataka',
+  'Chennai, Tamil Nadu',
+  'Hyderabad, Telangana',
+  'Jaipur, Rajasthan',
+  'Goa, India',
+  'Pune, Maharashtra',
+  'Ahmedabad, Gujarat',
+  'Dubai, United Arab Emirates',
+  'London, United Kingdom',
+  'New York, USA',
+  'Singapore',
+];
+
 export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated, onCancel }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [loadingStep, setLoadingStep] = useState<StagedLoadingStep | null>(null);
+  const [isBudgetEstimatorOpen, setIsBudgetEstimatorOpen] = useState<boolean>(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState<boolean>(false);
   const { showToast } = useToast();
 
   // Form State
@@ -43,68 +69,151 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
     return d.toISOString().split('T')[0];
   });
   const [location, setLocation] = useState('Kolkata, West Bengal');
-  const [guestCount, setGuestCount] = useState<number>(150);
 
-  // Budget
-  const [totalBudget, setTotalBudget] = useState<number>(500000);
+  // String buffered state for guests to fix the sticky zero bug
+  const [guestCountStr, setGuestCountStr] = useState('150');
+
+  // Budget state with string buffer
+  const [budgetStr, setBudgetStr] = useState('500000');
   const [currency, setCurrency] = useState<CurrencyCode>('INR');
 
   // Style
   const [style, setStyle] = useState<EventStyle>('traditional');
 
-  // Preferences
-  const [preferences, setPreferences] = useState(
-    'I want a traditional Bengali wedding for around 150 guests. I want it to feel elegant with authentic regional cuisine, but strictly stay within my ₹5 lakh budget.'
+  // Preferences: Initially empty as required (not hardcoded with demo text)
+  const [preferences, setPreferences] = useState('');
+
+  const parsedGuestCount = Math.max(1, parseInt(guestCountStr, 10) || 1);
+  const parsedBudget = Math.max(1000, parseInt(budgetStr, 10) || 1000);
+
+  // Event Type options with icons and descriptions
+  const eventTypeCards: { id: EventType; title: string; desc: string; icon: string }[] = [
+    {
+      id: 'wedding',
+      title: 'Wedding',
+      desc: 'Plan ceremonies, receptions, vendors and guest experiences.',
+      icon: '💍',
+    },
+    {
+      id: 'birthday',
+      title: 'Birthday',
+      desc: 'Plan parties, activities, food and entertainment.',
+      icon: '🎂',
+    },
+    {
+      id: 'community',
+      title: 'Community Event',
+      desc: 'Coordinate people, venues, vendors and activities.',
+      icon: '🏘',
+    },
+    {
+      id: 'custom',
+      title: 'Custom Event',
+      desc: 'Build a personalized plan for any event.',
+      icon: '✨',
+    },
+  ];
+
+  const styleOptions: {
+    id: EventStyle;
+    title: string;
+    desc: string;
+    icon: string;
+    accent: string;
+  }[] = [
+    {
+      id: 'traditional',
+      title: 'Traditional',
+      desc: 'Rich cultural rituals, regional decor & heritage customs',
+      icon: '🪔',
+      accent: 'border-amber-300 bg-amber-50/40 text-amber-900',
+    },
+    {
+      id: 'modern',
+      title: 'Modern',
+      desc: 'Sleek aesthetics, contemporary lighting & curated music',
+      icon: '✨',
+      accent: 'border-royal-300 bg-royal-50/40 text-royal-900',
+    },
+    {
+      id: 'minimal',
+      title: 'Minimal',
+      desc: 'Understated elegance, focused on intimate moments',
+      icon: '🌿',
+      accent: 'border-emerald-300 bg-emerald-50/40 text-emerald-900',
+    },
+    {
+      id: 'luxury',
+      title: 'Luxury',
+      desc: 'Opulent venue, premier catering & bespoke hospitality',
+      icon: '💎',
+      accent: 'border-purple-300 bg-purple-50/40 text-purple-900',
+    },
+    {
+      id: 'casual',
+      title: 'Casual',
+      desc: 'Relaxed atmosphere, informal seating & easy vibes',
+      icon: '🎉',
+      accent: 'border-orange-300 bg-orange-50/40 text-orange-900',
+    },
+    {
+      id: 'eco-friendly',
+      title: 'Eco-Friendly',
+      desc: 'Zero plastic, sustainable materials & potted flora',
+      icon: '🌱',
+      accent: 'border-teal-300 bg-teal-50/40 text-teal-900',
+    },
+    {
+      id: 'custom',
+      title: 'Custom Blend',
+      desc: 'A unique fusion personalized through your vision prompt',
+      icon: '🎨',
+      accent: 'border-brand-300 bg-brand-50/40 text-brand-900',
+    },
+  ];
+
+  // Budget Presets covering low to high tiers
+  const budgetPresetsINR = [
+    { label: '₹10,000', value: 10000 },
+    { label: '₹25,000', value: 25000 },
+    { label: '₹50,000', value: 50000 },
+    { label: '₹1 Lakh', value: 100000 },
+    { label: '₹2 Lakh', value: 200000 },
+    { label: '₹5 Lakh', value: 500000 },
+    { label: '₹10 Lakh', value: 1000000 },
+    { label: '₹25 Lakh', value: 2500000 },
+  ];
+
+  const budgetPresetsUSD = [
+    { label: '$500', value: 500 },
+    { label: '$1,000', value: 1000 },
+    { label: '$2,500', value: 2500 },
+    { label: '$5,000', value: 5000 },
+    { label: '$10,000', value: 10000 },
+    { label: '$25,000', value: 25000 },
+    { label: '$50,000', value: 50000 },
+  ];
+
+  const activePresets = currency === 'INR' ? budgetPresetsINR : budgetPresetsUSD;
+
+  // Filtered city suggestions
+  const filteredCities = CITY_SUGGESTIONS.filter((city) =>
+    city.toLowerCase().includes(location.toLowerCase())
   );
 
-  const styleOptions: { id: EventStyle; title: string; desc: string; icon: string }[] = [
-    { id: 'traditional', title: 'Traditional', desc: 'Rich cultural rituals, regional decor & heritage', icon: '🪔' },
-    { id: 'modern', title: 'Modern', desc: 'Sleek aesthetics, contemporary lighting & music', icon: '✨' },
-    { id: 'minimal', title: 'Minimal', desc: 'Understated elegance, focused on intimate connections', icon: '🌿' },
-    { id: 'luxury', title: 'Luxury', desc: 'Opulent venue, premium catering & bespoke experiences', icon: '💎' },
-    { id: 'casual', title: 'Casual', desc: 'Relaxed atmosphere, comfortable seating & easy vibes', icon: '🎉' },
-    { id: 'eco-friendly', title: 'Eco-Friendly', desc: 'Zero plastic, sustainable materials & potted greenery', icon: '🌱' },
-    { id: 'custom', title: 'Custom', desc: 'Blend styles uniquely crafted by your AI prompt', icon: '🎨' },
+  // Dynamic vision placeholder based on user choices
+  const dynamicPlaceholder = `Tell AI about your food preferences, traditions, entertainment, special dietary requirements, or anything you want prioritized for your ${style} ${type} in ${location || 'your city'}...`;
+
+  // Dynamic suggestion chips for Step 4
+  const suggestionChips = [
+    `Suggest authentic regional traditions for ${location.split(',')[0] || 'the event'}`,
+    'Help me optimize spending on venue & decoration',
+    'Prioritize a memorable culinary & live dessert experience',
+    'Include eco-friendly, zero-waste decor ideas',
   ];
 
-  const presetTemplates = [
-    {
-      label: 'Traditional Bengali Wedding (₹5L)',
-      type: 'wedding' as EventType,
-      name: "Rohit & Meera's Wedding",
-      guests: 150,
-      budget: 500000,
-      style: 'traditional' as EventStyle,
-      pref: 'Traditional Bengali wedding with Gaye Holud and authentic Bengali food (Bhetki fish, Kosha Mangsho) for 150 guests in Kolkata within ₹5 Lakhs.',
-    },
-    {
-      label: '30th Milestone Birthday Bash',
-      type: 'birthday' as EventType,
-      name: "Aryan's 30th Rooftop Soirée",
-      guests: 60,
-      budget: 120000,
-      style: 'modern' as EventStyle,
-      pref: 'Chic rooftop evening celebration with live acoustic music, craft cocktails, gourmet appetizers, and Polaroid photo memories.',
-    },
-    {
-      label: 'Community Tech Symposium',
-      type: 'community' as EventType,
-      name: 'AI Developers Meetup & Demo Day',
-      guests: 200,
-      budget: 250000,
-      style: 'modern' as EventStyle,
-      pref: 'Community tech symposium with keynote auditorium stage, high-speed networking, swag bags, and buffet lunch for 200 builders.',
-    },
-  ];
-
-  const handleApplyPreset = (t: typeof presetTemplates[0]) => {
-    setType(t.type);
-    setName(t.name);
-    setGuestCount(t.guests);
-    setTotalBudget(t.budget);
-    setStyle(t.style);
-    setPreferences(t.pref);
-    showToast(`Applied preset: ${t.label}`, 'info');
+  const handleAddChip = (chip: string) => {
+    setPreferences((prev) => (prev.trim() ? `${prev.trim()}\n- ${chip}` : chip));
   };
 
   const handleNext = () => {
@@ -115,6 +224,20 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
       }
       if (!date) {
         showToast('Please pick an event date', 'error');
+        return;
+      }
+      if (!location.trim()) {
+        showToast('Please provide an event location / city', 'error');
+        return;
+      }
+      if (!guestCountStr || parsedGuestCount < 1) {
+        showToast('Please enter a valid guest count (at least 1)', 'error');
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (!budgetStr || parsedBudget < 500) {
+        showToast('Please specify a realistic total budget', 'error');
         return;
       }
     }
@@ -139,11 +262,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
       type,
       date,
       location,
-      guestCount,
-      totalBudget,
+      guestCount: parsedGuestCount,
+      totalBudget: parsedBudget,
       currency,
       style,
-      preferences,
+      preferences: preferences.trim() || `A well-executed ${style} ${type} in ${location} within budget.`,
     };
 
     try {
@@ -157,11 +280,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
         type,
         date,
         location,
-        guestCount,
-        totalBudget,
+        guestCount: parsedGuestCount,
+        totalBudget: parsedBudget,
         currency,
         style,
-        preferences,
+        preferences: preferences.trim(),
         eventSummary: generated.eventSummary,
         budgetPlan: generated.budgetPlan,
         expenses: [],
@@ -173,11 +296,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
         updatedAt: new Date().toISOString(),
       };
 
-      showToast('AI Event Plan successfully created!', 'success');
+      showToast('AI Event Blueprint created successfully!', 'success');
       onPlanCreated(newPlan);
     } catch (err) {
       console.error(err);
-      showToast('Error generating plan, but created fallback plan.', 'info');
+      showToast('Plan created using contextual planning engine.', 'info');
     } finally {
       setIsGenerating(false);
     }
@@ -192,36 +315,32 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
         eventName={name || 'Your Event'}
       />
 
+      {/* AI Budget Estimator Modal */}
+      <BudgetEstimatorModal
+        isOpen={isBudgetEstimatorOpen}
+        onClose={() => setIsBudgetEstimatorOpen(false)}
+        eventType={type}
+        location={location}
+        guestCount={parsedGuestCount}
+        style={style}
+        preferences={preferences}
+        currency={currency}
+        onApplyBudget={(amt) => setBudgetStr(String(amt))}
+      />
+
       {/* Top Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold mb-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-bold mb-3 shadow-xs">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>GenAI Event Planner</span>
+          <span>Intelligent Event Architect</span>
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-900">Create New Event</h2>
-        <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-          Share your event parameters and let Google Gemini architect your budget, timeline, vendors, and ideas.
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Create New Event</h2>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">
+          Share your event parameters and let Google Gemini engineer your budget, timeline, vendors, and ideas.
         </p>
       </div>
 
-      {/* Quick Preset Buttons */}
-      <div className="mb-8 p-3.5 bg-slate-100/70 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-brand-600" /> Presets:
-        </span>
-        {presetTemplates.map((p, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => handleApplyPreset(p)}
-            className="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 text-slate-700 rounded-lg border border-slate-200 transition-all shadow-xs"
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Step Progress Pills */}
+      {/* Step Progress Bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           {[
@@ -258,16 +377,17 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
         </div>
       </div>
 
-      {/* Form Card */}
+      {/* Main Multi-Step Form Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-md">
         {/* STEP 1: Basic Information */}
         {currentStep === 1 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Step 1 — Basic Information</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Who, what, when, and where.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Define your core event identity and logistics.</p>
             </div>
 
+            {/* Event Name */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                 Event Name <span className="text-rose-500">*</span>
@@ -276,28 +396,46 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Ananya & Arjun's Wedding"
+                placeholder="e.g., Ananya & Arjun's Wedding or Aryan's 30th Birthday"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Event Type
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as EventType)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
-                >
-                  <option value="wedding">Wedding</option>
-                  <option value="birthday">Birthday</option>
-                  <option value="community">Community Event</option>
-                  <option value="custom">Custom Event</option>
-                </select>
+            {/* Event Type - Responsive 4 Cards */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                Event Type <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {eventTypeCards.map((opt) => {
+                  const isSelected = type === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => setType(opt.id)}
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 select-none ${
+                        isSelected
+                          ? 'border-brand-600 bg-brand-50/50 ring-2 ring-brand-500/25 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <span className="text-2xl shrink-0 mt-0.5">{opt.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-sm text-slate-900">{opt.title}</h4>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-snug">{opt.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
 
+            {/* Date, Location, Guest Count */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Event Date */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                   Event Date <span className="text-rose-500">*</span>
@@ -307,44 +445,75 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
-                  <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              {/* Location with city suggestions */}
+              <div className="relative">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Location / City
+                  Location / City <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    onFocus={() => setShowLocationDropdown(true)}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      setShowLocationDropdown(true);
+                    }}
                     placeholder="e.g., Kolkata, West Bengal"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+
+                {/* City Suggestion Dropdown */}
+                {showLocationDropdown && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto p-1 animate-slide-up">
+                    <p className="px-3 py-1.5 text-[10px] font-bold uppercase text-slate-400">
+                      Suggested Cities
+                    </p>
+                    {filteredCities.slice(0, 7).map((city, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onMouseDown={() => {
+                          setLocation(city);
+                          setShowLocationDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2"
+                      >
+                        <MapPin className="w-3 h-3 text-brand-500" />
+                        <span>{city}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* Number of Guests - String state allows empty editing cleanly */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Number of Guests
+                  Number of Guests <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min={5}
-                    max={5000}
-                    value={guestCount}
-                    onChange={(e) => setGuestCount(Number(e.target.value) || 0)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    type="text"
+                    inputMode="numeric"
+                    value={guestCountStr}
+                    onChange={(e) => {
+                      // Allow empty or positive integer
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setGuestCountStr(val);
+                    }}
+                    placeholder="150"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
-                  <Users className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Users className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -353,12 +522,24 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
 
         {/* STEP 2: Budget */}
         {currentStep === 2 && (
-          <div className="space-y-5 animate-fade-in">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Step 2 — Total Budget</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Gemini will intelligently split this budget across 9 essential categories.
-              </p>
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Step 2 — Total Budget</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Set your budget cap or let GenAI estimate based on {location} and {parsedGuestCount} guests.
+                </p>
+              </div>
+
+              {/* GenAI "Guess My Budget with AI" Button */}
+              <button
+                type="button"
+                onClick={() => setIsBudgetEstimatorOpen(true)}
+                className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-royal-600 hover:from-purple-500 hover:to-royal-500 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 transition-all flex items-center gap-1.5 active:scale-95 shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Guess My Budget with AI</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -368,27 +549,40 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    min={1000}
-                    step={5000}
-                    value={totalBudget}
-                    onChange={(e) => setTotalBudget(Number(e.target.value) || 0)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    type="text"
+                    inputMode="numeric"
+                    value={budgetStr}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setBudgetStr(val);
+                    }}
+                    placeholder="500000"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg font-black text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                   <Wallet className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <div className="flex gap-2 mt-2">
-                  {[200000, 500000, 1000000, 2000000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setTotalBudget(amt)}
-                      className="px-2 py-1 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700"
-                    >
-                      {CURRENCY_MAP[currency]?.symbol || '₹'}
-                      {(amt / 100000).toFixed(amt % 100000 === 0 ? 0 : 1)} Lakh
-                    </button>
-                  ))}
+
+                {/* Granular Budget Presets */}
+                <div className="mt-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Quick Budget Presets:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activePresets.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setBudgetStr(String(p.value))}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all ${
+                          parseInt(budgetStr, 10) === p.value
+                            ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -399,7 +593,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                  className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+                  className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
                 >
                   {Object.entries(CURRENCY_MAP).map(([code, c]) => (
                     <option key={code} value={code}>
@@ -410,45 +604,49 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
-              <span className="font-bold text-slate-800">Budget Per Guest Ratio:</span>{' '}
-              {guestCount > 0 ? (
-                <span className="font-semibold text-brand-700">
+            {/* Calculation summary banner */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-bold text-slate-800">Budget Per Guest Ratio: </span>
+                <span className="font-bold text-brand-700">
                   {CURRENCY_MAP[currency]?.symbol}
-                  {Math.round(totalBudget / guestCount).toLocaleString()} per guest
+                  {Math.round(parsedBudget / parsedGuestCount).toLocaleString()} per guest
                 </span>
-              ) : (
-                'N/A'
-              )}
+              </div>
+              <span className="text-slate-500">
+                ({parsedGuestCount} guests in {location})
+              </span>
             </div>
           </div>
         )}
 
-        {/* STEP 3: Style */}
+        {/* STEP 3: Aesthetic & Style */}
         {currentStep === 3 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Step 3 — Aesthetic & Style</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Choose the design language for your decor, atmosphere, and supplier choices.
+                Choose the visual language for your decor, atmosphere, and styling.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {styleOptions.map((opt) => {
                 const isSelected = style === opt.id;
                 return (
                   <div
                     key={opt.id}
                     onClick={() => setStyle(opt.id)}
-                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start gap-3.5 select-none hover:-translate-y-0.5 ${
                       isSelected
-                        ? 'border-brand-600 bg-brand-50/40 ring-2 ring-brand-500/20 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        ? 'border-brand-600 bg-brand-50/50 ring-2 ring-brand-500/25 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
                     }`}
                   >
-                    <span className="text-2xl">{opt.icon}</span>
-                    <div className="flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xl shrink-0">
+                      {opt.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-sm text-slate-900">{opt.title}</h4>
                         {isSelected && <CheckCircle2 className="w-4 h-4 text-brand-600" />}
@@ -464,34 +662,61 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
 
         {/* STEP 4: Preferences & AI Prompt */}
         {currentStep === 4 && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             <div>
               <h3 className="text-lg font-bold text-slate-900">Step 4 — Vision & AI Instructions</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Tell EventPilot AI anything specific: traditions, food requests, entertainment, or constraints.
+                Add specific culinary cravings, rituals, entertainment ideas, or priorities.
               </p>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
-                Tell AI what you have in mind...
-              </label>
-              <textarea
-                rows={5}
-                value={preferences}
-                onChange={(e) => setPreferences(e.target.value)}
-                placeholder="Example: I want a traditional Bengali wedding for around 150 guests. I want it to feel elegant with authentic regional cuisine, but strictly stay within my ₹5 lakh budget."
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 leading-relaxed transition-all"
-              />
+            {/* Collected Parameters Summary Dossier */}
+            <div className="p-4 bg-royal-50/60 rounded-2xl border border-royal-100 text-xs text-royal-950 space-y-1.5">
+              <span className="font-bold text-royal-900 flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-royal-600" /> Blueprint Dossier Collected So Far:
+              </span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
+                <span><strong>Event:</strong> {name || 'Untitled'} ({type})</span>
+                <span><strong>Date:</strong> {date}</span>
+                <span><strong>Location:</strong> {location}</span>
+                <span><strong>Guests:</strong> {parsedGuestCount}</span>
+                <span><strong>Budget:</strong> {CURRENCY_MAP[currency]?.symbol}{parsedBudget.toLocaleString()}</span>
+                <span><strong>Style:</strong> <span className="capitalize">{style}</span></span>
+              </div>
             </div>
 
-            {/* Summary preview badge */}
-            <div className="p-4 bg-royal-50/50 rounded-2xl border border-royal-100 text-xs text-royal-950 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span><strong>Event:</strong> {name || 'Untitled Event'}</span>
-              <span><strong>Target:</strong> {date}</span>
-              <span><strong>Guests:</strong> {guestCount}</span>
-              <span><strong>Budget:</strong> {CURRENCY_MAP[currency]?.symbol}{totalBudget.toLocaleString()}</span>
-              <span><strong>Style:</strong> {style}</span>
+            {/* Clickable AI Suggestion Chips */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                Clickable Prompt Ideas:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestionChips.map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleAddChip(chip)}
+                    className="px-2.5 py-1 bg-slate-50 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 text-slate-600 border border-slate-200 rounded-lg text-xs font-medium transition-all flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>+</span>
+                    <span>{chip}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Textarea with dynamic placeholder (NOT hardcoded text) */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Tell AI what you have in mind... (Optional)
+              </label>
+              <textarea
+                rows={4}
+                value={preferences}
+                onChange={(e) => setPreferences(e.target.value)}
+                placeholder={dynamicPlaceholder}
+                className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 leading-relaxed transition-all"
+              />
             </div>
           </div>
         )}
@@ -541,4 +766,3 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({ onPlanCreated,
     </div>
   );
 };
-

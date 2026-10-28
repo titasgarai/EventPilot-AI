@@ -105,6 +105,7 @@ export interface Vendor {
   status: VendorStatus;
   contact: string;
   email?: string;
+  website?: string;
   notes?: string;
   rating?: number;
 }
@@ -180,3 +181,34 @@ export interface StagedLoadingStep {
   detail: string;
 }
 
+export interface UserProfile {
+  name: string;
+  email: string;
+  avatar?: string;
+  isGuest?: boolean;
+}
+
+export interface BudgetEstimateCategory {
+  category: BudgetCategory;
+  estimatedAmount: number;
+  sharePercentage: number;
+}
+
+export interface BudgetEstimateResult {
+  minRange: number;
+  maxRange: number;
+  suggestedTarget: number;
+  costPerGuest: number;
+  breakdown: BudgetEstimateCategory[];
+  explanation: string;
+  assumptions: string[];
+}
+
+export interface VendorAdviceResult {
+  vendorCategory: VendorCategory;
+  alternativeOptions: string[];
+  selectionTips: string[];
+  questionsToAsk: string[];
+  estimatedCostRange: string;
+  backupPlan: string;
+}

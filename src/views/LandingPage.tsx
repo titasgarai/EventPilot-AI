@@ -29,15 +29,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   demoEvent,
 }) => {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
-      {/* Decorative background glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-brand-100/40 via-royal-100/30 to-transparent blur-3xl pointer-events-none -z-10" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden relative">
+      {/* Decorative subtle ambient lights */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[420px] bg-gradient-to-b from-brand-100/40 via-purple-100/25 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-96 right-10 w-72 h-72 bg-royal-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Hero Section */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200/80 text-brand-700 text-xs font-bold mb-6 shadow-xs animate-fade-in">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200/80 text-brand-700 text-xs font-bold mb-6 shadow-2xs animate-fade-in">
           <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-          <span>Google PromptWars Finalist Project • Powered by Gemini AI</span>
+          <span>AI-Powered Event Management & Intelligent Blueprints</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 max-w-4xl mx-auto leading-[1.12]">
@@ -47,15 +48,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </span>
         </h1>
 
-        <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
+        <p className="mt-6 text-base sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
           From budget to vendors to the big day, EventPilot AI turns your event idea into an organized, personalized plan.
         </p>
 
-        {/* Call to Actions */}
+        {/* Clear, Unconfusing CTAs */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
           <button
             onClick={onStartPlanning}
-            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-brand-600/30 hover:shadow-xl transition-all flex items-center justify-center gap-2 group active:scale-95"
+            className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-brand-600/25 hover:shadow-xl transition-all flex items-center justify-center gap-2 group active:scale-95"
           >
             <span>Start Planning</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -63,10 +64,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <button
             onClick={onTryDemo}
-            className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-2xl text-sm font-bold shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95"
+            className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-2xl text-sm font-bold shadow-2xs hover:shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95"
           >
             <ShieldCheck className="w-4 h-4 text-brand-600" />
-            <span>Try Live Demo (No Key Needed)</span>
+            <span>Explore Showcase Demo</span>
           </button>
         </div>
 
@@ -82,10 +83,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 </div>
                 <span className="text-[11px] font-mono font-medium text-slate-500">
-                  eventpilot.ai/dashboard/ananya-arjun-wedding
+                  eventpilot.ai/dashboard/{demoEvent.id}
                 </span>
-                <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">
-                  Gemini Active
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Demo Showcase
                 </span>
               </div>
 
@@ -94,7 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl border border-slate-200/80">
                   <div>
                     <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-100 text-brand-800 rounded-full uppercase">
-                      Wedding • Traditional Bengali
+                      {demoEvent.type} • {demoEvent.style}
                     </span>
                     <h3 className="text-xl font-bold text-slate-900 mt-1">
                       {demoEvent.name}
@@ -113,7 +114,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
                     <span className="text-[10px] font-bold text-slate-400 uppercase">Budget</span>
-                    <p className="text-lg font-bold text-slate-900 mt-0.5">₹5,00,000</p>
+                    <p className="text-lg font-bold text-slate-900 mt-0.5">
+                      {formatCurrency(demoEvent.totalBudget, demoEvent.currency)}
+                    </p>
                     <p className="text-[11px] text-emerald-600 font-semibold">₹2,15,000 remaining</p>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-slate-200">
@@ -146,7 +149,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Smart Budget Planning */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs hover:shadow-md transition-all group">
             <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 mb-5 group-hover:scale-105 transition-transform">
               <Wallet className="w-6 h-6" />
             </div>
@@ -160,7 +163,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Card 2: AI Timeline */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs hover:shadow-md transition-all group">
             <div className="w-12 h-12 rounded-2xl bg-royal-50 border border-royal-100 flex items-center justify-center text-royal-600 mb-5 group-hover:scale-105 transition-transform">
               <Clock className="w-6 h-6" />
             </div>
@@ -174,7 +177,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Card 3: Personalized Ideas */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm hover:shadow-md transition-all group">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs hover:shadow-md transition-all group">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-5 group-hover:scale-105 transition-transform">
               <Lightbulb className="w-6 h-6" />
             </div>
@@ -201,7 +204,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center">
             <div className="w-10 h-10 rounded-full bg-brand-600 text-white font-bold flex items-center justify-center mx-auto mb-4">
               1
             </div>
@@ -211,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center">
             <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center mx-auto mb-4">
               2
             </div>
@@ -221,7 +224,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-center">
             <div className="w-10 h-10 rounded-full bg-royal-600 text-white font-bold flex items-center justify-center mx-auto mb-4">
               3
             </div>
@@ -245,9 +248,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* Footer */}
       <footer className="py-8 px-4 text-center border-t border-slate-200 text-xs text-slate-500">
-        <p>EventPilot AI — Google PromptWars Challenge 2026. Built with React, TypeScript, Tailwind CSS, & Google Gemini API.</p>
+        <p>EventPilot AI — Intelligent Event Planning Assistant. Powered by Google Gemini.</p>
       </footer>
     </div>
   );
 };
-

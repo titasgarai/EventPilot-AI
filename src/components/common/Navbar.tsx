@@ -10,13 +10,16 @@ import {
   ChevronDown,
   RotateCcw,
   ShieldCheck,
+  User,
+  LogOut,
 } from 'lucide-react';
-import { EventPlan } from '../../types';
+import { EventPlan, UserProfile } from '../../types';
 import { isAiConfigured } from '../../services/gemini';
 
 interface NavbarProps {
   activeEvent: EventPlan;
   events: EventPlan[];
+  userProfile: UserProfile | null;
   onSelectEvent: (id: string) => void;
   onOpenMyEvents: () => void;
   onOpenCreateEvent: () => void;
@@ -25,11 +28,13 @@ interface NavbarProps {
   onToggleMobileSidebar: () => void;
   isMobileSidebarOpen: boolean;
   onNavigateHome: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeEvent,
   events,
+  userProfile,
   onSelectEvent,
   onOpenMyEvents,
   onOpenCreateEvent,
@@ -38,6 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMobileSidebar,
   isMobileSidebarOpen,
   onNavigateHome,
+  onLogout,
 }) => {
   const hasAi = isAiConfigured();
 
@@ -66,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 EventPilot<span className="text-brand-600">.AI</span>
               </span>
               <span className="hidden sm:block text-[10px] text-slate-400 font-semibold tracking-wider uppercase -mt-0.5">
-                Google PromptWars
+                AI Event Manager
               </span>
             </div>
           </button>
@@ -144,9 +150,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden sm:inline">Plan New Event</span>
             <span className="sm:hidden">New</span>
           </button>
+
+          {/* User Profile Chip & Logout */}
+          {userProfile && (
+            <div className="flex items-center gap-1 pl-1 border-l border-slate-200">
+              <div
+                className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-xs font-bold text-slate-700"
+                title={`${userProfile.name} (${userProfile.email})`}
+              >
+                {userProfile.avatar ? (
+                  <img src={userProfile.avatar} alt={userProfile.name} className="w-full h-full object-cover" />
+                ) : (
+                  userProfile.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <button
+                onClick={onLogout}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                title="Sign Out / Switch Profile"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
   );
 };
-
