@@ -84,6 +84,10 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
     recommendations: { category: string; currentShare: number; suggestedShare: number; advice: string }[];
   } | null>(null);
 
+  // Dynamically merge event plan categories with standard categories
+  const planCategories = event.budgetPlan.map((b) => b.category);
+  const availableCategories = Array.from(new Set([...planCategories, ...CATEGORIES]));
+
   // Handle opening add expense
   const openAddModal = (presetCategory?: BudgetCategory) => {
     setEditingExpense(null);
@@ -564,7 +568,7 @@ export const BudgetView: React.FC<BudgetViewProps> = ({ event, onUpdateEvent }) 
                 onChange={(e) => setExpenseCategory(e.target.value as BudgetCategory)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white cursor-pointer"
               >
-                {CATEGORIES.map((cat) => (
+                {availableCategories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>

@@ -196,3 +196,4 @@ describe('Create Event Wizard Form Flow & Validation Rules', () => {
     });
   });
 });
+

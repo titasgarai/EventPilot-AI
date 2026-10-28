@@ -37,6 +37,11 @@ export const AIIdeasView: React.FC<AIIdeasViewProps> = ({ event, onUpdateEvent }
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Dynamically include all categories present in the event ideas
+  const dynamicSections = Array.from(
+    new Set([...event.personalizedIdeas.map((i) => i.category), ...SECTIONS])
+  ).filter(Boolean);
+
   const toggleFavorite = (ideaId: string) => {
     const updated = event.personalizedIdeas.map((idea) =>
       idea.id === ideaId ? { ...idea, isFavorite: !idea.isFavorite } : idea
@@ -139,7 +144,7 @@ export const AIIdeasView: React.FC<AIIdeasViewProps> = ({ event, onUpdateEvent }
           All Categories ({event.personalizedIdeas.length})
         </button>
 
-        {SECTIONS.map((sec) => {
+        {dynamicSections.map((sec) => {
           const count = event.personalizedIdeas.filter((i) => i.category === sec).length;
           const isSelected = activeSection === sec;
 

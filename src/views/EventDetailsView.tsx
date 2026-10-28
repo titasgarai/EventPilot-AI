@@ -147,7 +147,16 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({ event, onUpd
                 <option value="custom">Custom</option>
               </select>
             ) : (
-              <p className="text-sm font-semibold text-slate-800 capitalize">{event.type}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-800 capitalize">
+                  {event.type === 'custom' && event.customEventType ? `Custom (${event.customEventType})` : event.type}
+                </span>
+                {event.format && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+                    {event.format}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 

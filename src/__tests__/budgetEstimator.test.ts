@@ -150,3 +150,4 @@ describe('Budget Estimator & Event-Type Specific Logic', () => {
     expect(secondRun.inputSnapshot).not.toEqual(firstRun.inputSnapshot);
   });
 });
+
