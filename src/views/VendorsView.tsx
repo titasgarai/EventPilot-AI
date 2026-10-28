@@ -35,6 +35,12 @@ const VENDOR_CATEGORIES: VendorCategory[] = [
   'Photographer',
   'Decorator',
   'Entertainment',
+  'Cake',
+  'Party Favors',
+  'AV & Production',
+  'Speakers',
+  'Platform & Software',
+  'Volunteers & Staff',
   'Transportation',
   'Makeup',
   'Security',
@@ -279,6 +285,14 @@ export const VendorsView: React.FC<VendorsViewProps> = ({ event, onUpdateEvent }
           <p className="text-xl font-black text-amber-600 mt-1">{stats.notStarted}</p>
           <span className="text-[11px] text-slate-500">Needs initial outreach</span>
         </div>
+      </div>
+
+      {/* AI Transparency & Guidance Banner */}
+      <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl px-4 py-3 flex items-start gap-3">
+        <Sparkles className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
+        <p className="text-xs text-sky-950 leading-relaxed">
+          <span className="font-bold">Planning Tip:</span> Vendor estimates and suggestions are AI-generated based on typical local costs for your event style and guest count. Contact and verify providers directly before signing contracts or paying deposits.
+        </p>
       </div>
 
       {/* Filters */}

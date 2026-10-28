@@ -169,6 +169,7 @@ function AppContent() {
               <DashboardView
                 event={activeEvent}
                 onNavigateTab={setCurrentTab}
+                onUpdateEvent={handleUpdateEvent}
               />
             )}
             {currentTab === 'details' && (

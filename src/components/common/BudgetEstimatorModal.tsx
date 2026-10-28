@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from './Modal';
-import { Sparkles, Loader2, CheckCircle2, TrendingUp, AlertCircle, MapPin, Users, HelpCircle } from 'lucide-react';
-import { BudgetEstimateResult, CurrencyCode, EventStyle, EventType } from '../../types';
+import { Sparkles, Loader2, CheckCircle2, TrendingUp, AlertCircle, MapPin, Users, HelpCircle, Monitor, RefreshCw } from 'lucide-react';
+import { BudgetEstimateResult, CurrencyCode, EventFormat, EventStyle, EventType } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { estimateBudgetWithAI } from '../../services/gemini';
 import { useToast } from './Toast';
@@ -10,6 +10,8 @@ interface BudgetEstimatorModalProps {
   isOpen: boolean;
   onClose: () => void;
   eventType: EventType;
+  customEventType?: string;
+  format?: EventFormat;
   location: string;
   guestCount: number;
   style: EventStyle;
@@ -22,6 +24,8 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
   isOpen,
   onClose,
   eventType,
+  customEventType,
+  format = 'in-person',
   location,
   guestCount,
   style,
@@ -33,11 +37,17 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
   const [result, setResult] = useState<BudgetEstimateResult | null>(null);
   const { showToast } = useToast();
 
+  // Current inputs fingerprint to guarantee cache invalidation
+  const currentInputsKey = `${eventType}|${customEventType || ''}|${format}|${location}|${guestCount}|${style}|${currency}`;
+  const lastInputsKeyRef = useRef<string>('');
+
   const handleEstimate = async () => {
     setLoading(true);
     try {
       const data = await estimateBudgetWithAI({
         eventType,
+        customEventType,
+        format,
         location,
         guestCount,
         style,
@@ -45,6 +55,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
         currency,
       });
       setResult(data);
+      lastInputsKeyRef.current = currentInputsKey;
     } catch (err) {
       console.error(err);
       showToast('Error estimating budget', 'error');
@@ -53,12 +64,15 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
     }
   };
 
-  // Run automatically when modal opens if not already estimated
-  React.useEffect(() => {
-    if (isOpen && !result && !loading) {
-      handleEstimate();
+  // Automatically recalculate whenever modal opens if inputs have changed!
+  useEffect(() => {
+    if (isOpen) {
+      if (lastInputsKeyRef.current !== currentInputsKey || !result) {
+        setResult(null); // Invalidate old estimate immediately!
+        handleEstimate();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, currentInputsKey]);
 
   const handleApply = () => {
     if (result) {
@@ -68,28 +82,54 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
     }
   };
 
+  const displayName = eventType === 'custom' && customEventType ? customEventType : eventType;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="GenAI Budget Estimator"
-      subtitle="Location & guest-count aware cost projection powered by Gemini"
+      subtitle={`Location & guest-count aware cost model for ${displayName}`}
       maxWidth="xl"
     >
       <div className="space-y-5">
-        {/* Input Parameters Summary Pill */}
-        <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700">
-          <span className="font-bold text-slate-900 capitalize">{style} {eventType}</span>
-          <span>•</span>
-          <span className="flex items-center gap-1 font-semibold text-slate-800">
-            <MapPin className="w-3.5 h-3.5 text-brand-500" />
-            {location || 'Location set'}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1 font-semibold text-slate-800">
-            <Users className="w-3.5 h-3.5 text-royal-500" />
-            {guestCount} guests
-          </span>
+        {/* Transparency Banner: Shows exact inputs used for the calculation */}
+        <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200 text-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Estimate Based On Current Form Inputs:
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+              Synced to Latest
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-slate-800 font-medium">
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Event Type</span>
+              <span className="capitalize font-bold text-slate-900 truncate block">{displayName}</span>
+            </div>
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Format</span>
+              <span className="capitalize font-bold text-slate-900 block">{format}</span>
+            </div>
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Headcount</span>
+              <span className="font-bold text-slate-900 block">{guestCount} attendees</span>
+            </div>
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Location</span>
+              <span className="font-bold text-slate-900 truncate block">{format === 'online' ? 'Virtual Stage' : location}</span>
+            </div>
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Style</span>
+              <span className="capitalize font-bold text-slate-900 block">{style}</span>
+            </div>
+            <div className="bg-white px-2.5 py-1.5 rounded-xl border border-slate-100">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Currency</span>
+              <span className="font-bold text-slate-900 block">{currency}</span>
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -97,10 +137,10 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
             <Loader2 className="w-10 h-10 text-brand-600 animate-spin mx-auto" />
             <div>
               <p className="text-sm font-bold text-slate-900">
-                Calculating regional cost benchmarks for {location}...
+                Calculating benchmarks for {displayName} ({guestCount} {format === 'online' ? 'attendees' : 'guests'})...
               </p>
               <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                Analyzing hospitality catering rates, local venue tariffs, and {style} styling expectations.
+                Applying tailored financial model for {displayName} in {location}.
               </p>
             </div>
           </div>
@@ -116,7 +156,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
                   {formatCurrency(result.suggestedTarget, currency)}
                 </p>
                 <p className="text-xs text-slate-600 mt-1">
-                  ~{formatCurrency(result.costPerGuest, currency)} per guest
+                  ~{formatCurrency(result.costPerGuest, currency)} per {format === 'online' ? 'attendee' : 'guest'}
                 </p>
               </div>
 
@@ -128,7 +168,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
                   {formatCurrency(result.minRange, currency)} – {formatCurrency(result.maxRange, currency)}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Variance for vendor tiers in {location}
+                  Adjusted for {format === 'online' ? 'virtual production' : location} tiers
                 </p>
               </div>
             </div>
@@ -136,7 +176,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
             {/* AI Explanation */}
             <div className="p-4 rounded-2xl bg-royal-50/60 border border-royal-100 text-xs text-royal-950 leading-relaxed">
               <span className="font-bold flex items-center gap-1.5 mb-1 text-royal-900">
-                <Sparkles className="w-3.5 h-3.5 text-royal-600" /> Regional Market Analysis
+                <Sparkles className="w-3.5 h-3.5 text-royal-600" /> Event-Aware Financial Analysis
               </span>
               {result.explanation}
             </div>
@@ -146,7 +186,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
                 Projected Category Breakdown
               </h4>
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
                     <tr>
@@ -191,7 +231,7 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
             <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
-                <strong>Planning Estimate:</strong> This projection is generated by GenAI based on regional event averages in {location}. Actual quotes will depend on vendor availability, seasonality, and customized contracts.
+                <strong>Planning Projection:</strong> Generated using event-type benchmarks for {displayName} with {guestCount} {format === 'online' ? 'attendees' : 'guests'}. Actual costs vary with season and custom vendor contracts.
               </span>
             </div>
 
@@ -201,9 +241,10 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
                 type="button"
                 onClick={handleEstimate}
                 disabled={loading}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1.5"
               >
-                Re-calculate
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-calculate</span>
               </button>
 
               <div className="flex gap-2">
@@ -230,3 +271,4 @@ export const BudgetEstimatorModal: React.FC<BudgetEstimatorModalProps> = ({
     </Modal>
   );
 };
+

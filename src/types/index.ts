@@ -1,5 +1,40 @@
 export type EventType = 'wedding' | 'birthday' | 'community' | 'custom';
 
+export type EventFormat = 'in-person' | 'online' | 'hybrid';
+
+export type OnlinePlatform =
+  | 'Google Meet'
+  | 'Zoom'
+  | 'Microsoft Teams'
+  | 'YouTube Live'
+  | 'Discord'
+  | 'Other';
+
+export interface OnlineTechCheckItem {
+  id: string;
+  label: string;
+  completed: boolean;
+}
+
+export interface OnlineEventDetails {
+  platform: OnlinePlatform;
+  meetingLink?: string;
+  hostName?: string;
+  moderatorName?: string;
+  expectedAttendees?: number;
+  recordingRequired: boolean;
+  techChecklist?: OnlineTechCheckItem[];
+}
+
+export interface RunOfShowItem {
+  id: string;
+  time: string;
+  title: string;
+  description: string;
+  leadPerson?: string;
+  completed?: boolean;
+}
+
 export type EventStyle =
   | 'traditional'
   | 'modern'
@@ -38,7 +73,20 @@ export type BudgetCategory =
   | 'Invitations'
   | 'Transportation'
   | 'Clothing'
-  | 'Miscellaneous';
+  | 'Miscellaneous'
+  | 'Cake'
+  | 'Party Favors'
+  | 'Activities'
+  | 'Speakers'
+  | 'AV & Production'
+  | 'Security'
+  | 'Volunteers & Staff'
+  | 'Permissions & Operations'
+  | 'Promotion & Marketing'
+  | 'Platform & Software'
+  | 'Technical Setup'
+  | 'Design & Assets'
+  | string;
 
 export interface BudgetItem {
   id: string;
@@ -64,11 +112,14 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 export type TimelinePhase =
   | '6 months before'
   | '3 months before'
+  | '2 months before'
   | '1 month before'
   | '2 weeks before'
   | '1 week before'
   | '3 days before'
-  | 'Event day';
+  | '1 day before'
+  | 'Event day'
+  | string;
 
 export interface Task {
   id: string;
@@ -92,7 +143,14 @@ export type VendorCategory =
   | 'Security'
   | 'Printing'
   | 'Equipment'
-  | 'Other';
+  | 'Cake'
+  | 'Party Favors'
+  | 'AV & Production'
+  | 'Speakers'
+  | 'Platform & Software'
+  | 'Volunteers & Staff'
+  | 'Other'
+  | string;
 
 export type VendorStatus = 'Not Started' | 'Shortlisted' | 'Contacted' | 'Booked';
 
@@ -156,6 +214,10 @@ export interface EventPlan {
   id: string;
   name: string;
   type: EventType;
+  customEventType?: string;
+  format?: EventFormat;
+  onlineDetails?: OnlineEventDetails;
+  runOfShow?: RunOfShowItem[];
   date: string;
   location: string;
   guestCount: number;
@@ -194,6 +256,17 @@ export interface BudgetEstimateCategory {
   sharePercentage: number;
 }
 
+export interface BudgetEstimateInputSnapshot {
+  eventType: EventType;
+  customEventType?: string;
+  format: EventFormat;
+  location: string;
+  guestCount: number;
+  style: EventStyle;
+  currency: CurrencyCode;
+  preferences?: string;
+}
+
 export interface BudgetEstimateResult {
   minRange: number;
   maxRange: number;
@@ -202,6 +275,7 @@ export interface BudgetEstimateResult {
   breakdown: BudgetEstimateCategory[];
   explanation: string;
   assumptions: string[];
+  inputSnapshot?: BudgetEstimateInputSnapshot;
 }
 
 export interface VendorAdviceResult {

@@ -200,3 +200,4 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onLoginSuccess, onExpl
     </div>
   );
 };
+
