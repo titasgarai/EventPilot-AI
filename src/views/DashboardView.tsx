@@ -1,50 +1,33 @@
 import React, { useState } from 'react';
 import {
   Calendar,
-  Wallet,
-  CheckSquare,
   Users,
-  Store,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-  AlertTriangle,
   Clock,
   ChevronRight,
-  CheckCircle2,
-  Lightbulb,
   ExternalLink,
   Bot,
   MapPin,
-  Flame,
   Copy,
   Check,
-  Video,
   Monitor,
   Cake,
   ShieldCheck,
   Award,
-  Radio,
+  Sparkles,
 } from 'lucide-react';
-import { EventPlan, SmartInsight } from '../types';
+import { EventPlan } from '../types';
 import {
   formatCurrency,
   formatDate,
   getDaysRemaining,
-  calculateBudgetStats,
   calculateTaskStats,
-  calculateVendorStats,
 } from '../utils/formatters';
 import { getDashboardConfig } from '../utils/dashboardConfig';
 import { StatCard } from '../components/common/StatCard';
-import { ProgressBar } from '../components/common/ProgressBar';
 import { ActiveTab } from '../components/common/Sidebar';
 import { useToast } from '../components/common/Toast';
 import {
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   Tooltip,
   BarChart,
   Bar,
@@ -59,22 +42,9 @@ interface DashboardViewProps {
   onUpdateEvent?: (updated: EventPlan) => void;
 }
 
-const PIE_COLORS = [
-  '#c23c57', // brand-600
-  '#4b61cb', // royal-600
-  '#f59e0b', // amber-500
-  '#10b981', // emerald-500
-  '#8b5cf6', // purple-500
-  '#06b6d4', // cyan-500
-  '#ec4899', // pink-500
-  '#64748b', // slate-500
-  '#f97316', // orange-500
-];
-
 export const DashboardView: React.FC<DashboardViewProps> = ({
   event,
   onNavigateTab,
-  onDismissInsight,
   onUpdateEvent,
 }) => {
   const { showToast } = useToast();
@@ -82,9 +52,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const countdown = getDaysRemaining(event.date);
   const themeConfig = getDashboardConfig(event);
 
-  const budgetStats = calculateBudgetStats(event);
   const taskStats = calculateTaskStats(event);
-  const vendorStats = calculateVendorStats(event);
 
   // Prepare chart data for budget
   const budgetChartData = event.budgetPlan.map((b) => ({

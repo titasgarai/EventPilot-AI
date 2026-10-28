@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
 import {
-  Wallet,
   Plus,
   Trash2,
   Edit2,
   Sparkles,
   PieChart as PieChartIcon,
   BarChart3,
-  TrendingDown,
-  AlertCircle,
-  CheckCircle2,
-  FileSpreadsheet,
-  ArrowRight,
   Loader2,
 } from 'lucide-react';
-import { EventPlan, BudgetCategory, BudgetItem, Expense } from '../types';
+import { EventPlan, BudgetCategory, Expense } from '../types';
 import { formatCurrency, calculateBudgetStats } from '../utils/formatters';
 import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
@@ -29,7 +23,6 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Legend,
 } from 'recharts';
 
 interface BudgetViewProps {

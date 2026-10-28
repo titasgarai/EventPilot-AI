@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Calendar,
-  MapPin,
-  Users,
-  Wallet,
-  Palette,
-  FileText,
   Sparkles,
   Save,
-  CheckCircle2,
-  Share2,
 } from 'lucide-react';
 import { EventPlan, EventStyle, EventType } from '../types';
 import { formatCurrency, formatDate, getDaysRemaining } from '../utils/formatters';

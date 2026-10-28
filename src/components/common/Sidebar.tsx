@@ -9,9 +9,7 @@ import {
   Sparkles,
   Bot,
   Calendar,
-  Layers,
   ChevronRight,
-  TrendingUp,
 } from 'lucide-react';
 import { EventPlan } from '../../types';
 import { getDaysRemaining, calculateTaskStats } from '../../utils/formatters';

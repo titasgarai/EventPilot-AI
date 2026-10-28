@@ -3,17 +3,11 @@ import {
   Lightbulb,
   Sparkles,
   Heart,
-  Share2,
-  Plus,
   Loader2,
-  Tag,
-  CheckCircle2,
-  Filter,
 } from 'lucide-react';
-import { EventPlan, IdeaSection, PersonalizedIdea } from '../types';
+import { EventPlan, IdeaSection } from '../types';
 import { generateMoreIdeasWithAI } from '../services/gemini';
 import { useToast } from '../components/common/Toast';
-import { Modal } from '../components/common/Modal';
 
 interface AIIdeasViewProps {
   event: EventPlan;

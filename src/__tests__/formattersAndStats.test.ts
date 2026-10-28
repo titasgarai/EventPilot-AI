@@ -25,6 +25,14 @@ describe('Formatters, Statistical Aggregations & Math Edge Cases', () => {
     });
   });
 
+  describe('formatDate', () => {
+    it('formats ISO dates into readable date format and handles empty strings', () => {
+      expect(formatDate('2026-11-20')).toContain('Nov');
+      expect(formatDate('2026-11-20')).toContain('2026');
+      expect(formatDate('')).toBe('');
+    });
+  });
+
   describe('calculateCostPerGuest (Edge Cases & Validation)', () => {
     it('calculates standard per-guest cost correctly', () => {
       expect(calculateCostPerGuest(500000, 150)).toBe(3333);

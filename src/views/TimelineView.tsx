@@ -4,15 +4,12 @@ import {
   Plus,
   CheckCircle2,
   Circle,
-  AlertCircle,
   Edit2,
   Trash2,
   Sparkles,
   Calendar,
   Filter,
-  ArrowRight,
   Loader2,
-  Flag,
 } from 'lucide-react';
 import { EventPlan, Task, TaskPriority, TaskStatus, TimelinePhase } from '../types';
 import { calculateTaskStats, formatDate } from '../utils/formatters';

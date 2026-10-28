@@ -18,7 +18,6 @@ import {
   BudgetEstimateInputSnapshot,
   VendorAdviceResult,
   VendorCategory,
-  BudgetCategory,
 } from '../types';
 import { getCustomApiKey } from '../utils/storage';
 
@@ -97,7 +96,6 @@ export function generateContextualFallbackPlan(input: CreateEventInput): Generat
   const b = input.totalBudget || 50000;
   const guests = input.guestCount || 50;
   const isOnline = input.format === 'online';
-  const eventLabel = input.type === 'custom' && input.customEventType ? input.customEventType : input.name;
 
   // 1. ONLINE / VIRTUAL EVENT
   if (isOnline) {
@@ -283,7 +281,6 @@ export function generateContextualFallbackPlan(input: CreateEventInput): Generat
   if (input.type === 'custom') {
     const customTitle = input.customEventType || input.name || 'Special Gathering';
     const isFarewell = customTitle.toLowerCase().includes('farewell') || customTitle.toLowerCase().includes('college');
-    const isLaunch = customTitle.toLowerCase().includes('launch') || customTitle.toLowerCase().includes('product');
 
     const budgetPlan: BudgetItem[] = [
       { id: 'b-cust-1', category: 'Venue', plannedAmount: Math.round(b * 0.28), spentAmount: 0, notes: `${customTitle} celebration venue reservation in ${input.location}` },
@@ -1073,6 +1070,29 @@ export interface EstimateBudgetInput {
   currency?: CurrencyCode;
 }
 
+function calculateCostMultipliers(
+  location: string,
+  style: EventStyle,
+  currency: CurrencyCode
+): { cityMultiplier: number; styleMultiplier: number } {
+  const locLower = (location || '').toLowerCase();
+  let cityMultiplier = 1.0;
+  if (locLower.includes('mumbai') || locLower.includes('delhi') || locLower.includes('bangalore') || locLower.includes('bengaluru')) {
+    cityMultiplier = 1.25;
+  } else if (locLower.includes('dubai') || locLower.includes('london') || locLower.includes('new york') || locLower.includes('singapore')) {
+    cityMultiplier = currency === 'INR' ? 2.5 : 1.2;
+  } else if (locLower.includes('goa') || locLower.includes('jaipur') || locLower.includes('udaipur')) {
+    cityMultiplier = 1.15;
+  }
+
+  let styleMultiplier = 1.0;
+  if (style === 'luxury') styleMultiplier = 1.7;
+  else if (style === 'minimal') styleMultiplier = 0.75;
+  else if (style === 'eco-friendly') styleMultiplier = 0.85;
+
+  return { cityMultiplier, styleMultiplier };
+}
+
 /**
  * GenAI "Guess My Budget with AI" Estimator:
  * Genuinely event-aware and format-aware!
@@ -1092,21 +1112,7 @@ export async function estimateBudgetWithAI(
   const symbol = currency === 'INR' ? '₹' : '$';
   const isOnline = input.format === 'online';
 
-  // Location tier adjustments
-  const locLower = location.toLowerCase();
-  let cityMultiplier = 1.0;
-  if (locLower.includes('mumbai') || locLower.includes('delhi') || locLower.includes('bangalore') || locLower.includes('bengaluru')) {
-    cityMultiplier = 1.25;
-  } else if (locLower.includes('dubai') || locLower.includes('london') || locLower.includes('new york') || locLower.includes('singapore')) {
-    cityMultiplier = currency === 'INR' ? 2.5 : 1.2;
-  } else if (locLower.includes('goa') || locLower.includes('jaipur') || locLower.includes('udaipur')) {
-    cityMultiplier = 1.15;
-  }
-
-  let styleMultiplier = 1.0;
-  if (input.style === 'luxury') styleMultiplier = 1.7;
-  else if (input.style === 'minimal') styleMultiplier = 0.75;
-  else if (input.style === 'eco-friendly') styleMultiplier = 0.85;
+  const { cityMultiplier, styleMultiplier } = calculateCostMultipliers(location, input.style, currency);
 
   let targetTotal = 50000;
   let breakdown: BudgetEstimateResult['breakdown'] = [];

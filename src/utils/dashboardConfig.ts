@@ -1,4 +1,4 @@
-import { EventPlan, EventType, EventFormat } from '../types';
+import { EventPlan, CurrencyCode } from '../types';
 import {
   Wallet,
   Users,
@@ -6,14 +6,28 @@ import {
   Store,
   Monitor,
   Cake,
-  Music,
   Video,
   ShieldCheck,
-  Calendar,
   Sparkles,
   Award,
+  LucideIcon,
 } from 'lucide-react';
-import { formatCurrency, calculateBudgetStats, calculateTaskStats, calculateVendorStats } from './formatters';
+import {
+  formatCurrency,
+  calculateBudgetStats,
+  calculateTaskStats,
+  calculateVendorStats,
+} from './formatters';
+
+export interface DashboardStatCard {
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: LucideIcon;
+  accentColor: string;
+  badge: { text: string; variant: 'success' | 'warning' | 'danger' | 'info' };
+  tabTarget: 'budget' | 'timeline' | 'vendors' | 'assistant';
+}
 
 export interface DashboardThemeConfig {
   personalityLabel: string;
@@ -21,15 +35,52 @@ export interface DashboardThemeConfig {
   badgeStyle: string;
   accentBadge: string;
   primaryMetricType: 'wedding' | 'birthday' | 'community' | 'online' | 'custom';
-  statCards: {
-    title: string;
-    value: string;
-    subtitle: string;
-    icon: any;
-    accentColor: string;
-    badge: { text: string; variant: 'success' | 'warning' | 'danger' | 'info' };
-    tabTarget: 'budget' | 'timeline' | 'vendors' | 'assistant';
-  }[];
+  statCards: DashboardStatCard[];
+}
+
+// Reusable card builders to eliminate boilerplate duplication
+function makeBudgetCard(
+  bStats: ReturnType<typeof calculateBudgetStats>,
+  currency: CurrencyCode,
+  title: string,
+  accentColor: string,
+  badgeSuffix = 'Spent'
+): DashboardStatCard {
+  return {
+    title,
+    value: formatCurrency(bStats.totalBudget, currency),
+    subtitle: `${formatCurrency(bStats.totalSpent, currency)} spent • ${formatCurrency(bStats.remaining, currency)} left`,
+    icon: Wallet,
+    accentColor,
+    badge: {
+      text: `${bStats.percentageSpent}% ${badgeSuffix}`,
+      variant: bStats.isOverBudget ? 'danger' : 'success',
+    },
+    tabTarget: 'budget',
+  };
+}
+
+function makeTaskCard(
+  tStats: ReturnType<typeof calculateTaskStats>,
+  title: string,
+  subtitle: string,
+  icon: LucideIcon,
+  accentColor: string,
+  readyText = 'On Track',
+  pendingText = 'Needs Focus'
+): DashboardStatCard {
+  return {
+    title,
+    value: `${tStats.completed} / ${tStats.total}`,
+    subtitle,
+    icon,
+    accentColor,
+    badge: {
+      text: tStats.progressPercent > 50 ? readyText : pendingText,
+      variant: tStats.progressPercent > 50 ? 'success' : 'warning',
+    },
+    tabTarget: 'timeline',
+  };
 }
 
 export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
@@ -37,7 +88,6 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
   const bStats = calculateBudgetStats(event);
   const tStats = calculateTaskStats(event);
   const vStats = calculateVendorStats(event);
-  const symbol = event.currency === 'INR' ? '₹' : '$';
 
   // 1. ONLINE / VIRTUAL EVENT
   if (isOnline) {
@@ -51,28 +101,14 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
       accentBadge: '100% Virtual Event',
       primaryMetricType: 'online',
       statCards: [
-        {
-          title: 'Virtual Production Budget',
-          value: formatCurrency(bStats.totalBudget, event.currency),
-          subtitle: `${formatCurrency(bStats.totalSpent, event.currency)} committed • ${formatCurrency(bStats.remaining, event.currency)} left`,
-          icon: Wallet,
-          accentColor: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-          badge: {
-            text: `${bStats.percentageSpent}% Allocated`,
-            variant: bStats.isOverBudget ? 'danger' : 'success',
-          },
-          tabTarget: 'budget',
-        },
+        makeBudgetCard(bStats, event.currency, 'Virtual Production Budget', 'bg-indigo-50 text-indigo-600 border-indigo-100', 'Allocated'),
         {
           title: 'Registered Attendees',
           value: `${event.guestCount}`,
           subtitle: `Expected in ${event.onlineDetails?.platform || 'Google Meet'} room`,
           icon: Users,
           accentColor: 'bg-sky-50 text-sky-600 border-sky-100',
-          badge: {
-            text: 'Live Room Capacity',
-            variant: 'info',
-          },
+          badge: { text: 'Live Room Capacity', variant: 'info' },
           tabTarget: 'timeline',
         },
         {
@@ -93,10 +129,7 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
           subtitle: 'Producer, slides & video editor',
           icon: Video,
           accentColor: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-          badge: {
-            text: `${vStats.booked} Confirmed`,
-            variant: 'success',
-          },
+          badge: { text: `${vStats.booked} Confirmed`, variant: 'success' },
           tabTarget: 'vendors',
         },
       ],
@@ -114,52 +147,24 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
       accentBadge: 'Joyful Birthday Party',
       primaryMetricType: 'birthday',
       statCards: [
-        {
-          title: 'Party Budget',
-          value: formatCurrency(bStats.totalBudget, event.currency),
-          subtitle: `${formatCurrency(bStats.totalSpent, event.currency)} spent • ${formatCurrency(bStats.remaining, event.currency)} left`,
-          icon: Wallet,
-          accentColor: 'bg-rose-50 text-rose-600 border-rose-100',
-          badge: {
-            text: `${bStats.percentageSpent}% Spent`,
-            variant: bStats.isOverBudget ? 'danger' : 'success',
-          },
-          tabTarget: 'budget',
-        },
+        makeBudgetCard(bStats, event.currency, 'Party Budget', 'bg-rose-50 text-rose-600 border-rose-100', 'Spent'),
         {
           title: 'Guest Headcount',
           value: `${event.guestCount}`,
           subtitle: 'Invited friends & family members',
           icon: Users,
           accentColor: 'bg-amber-50 text-amber-700 border-amber-100',
-          badge: {
-            text: 'RSVP Headcount',
-            variant: 'info',
-          },
+          badge: { text: 'RSVP Headcount', variant: 'info' },
           tabTarget: 'timeline',
         },
-        {
-          title: 'Party Tasks Pipeline',
-          value: `${tStats.completed} / ${tStats.total}`,
-          subtitle: `${tStats.pending} pending • Games & playlist ready`,
-          icon: CheckSquare,
-          accentColor: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-          badge: {
-            text: tStats.progressPercent > 50 ? 'Party Ready' : 'In Progress',
-            variant: tStats.progressPercent > 50 ? 'success' : 'warning',
-          },
-          tabTarget: 'timeline',
-        },
+        makeTaskCard(tStats, 'Party Tasks Pipeline', `${tStats.pending} pending • Games & playlist ready`, CheckSquare, 'bg-emerald-50 text-emerald-600 border-emerald-100', 'Party Ready', 'In Progress'),
         {
           title: 'Artisan Cake & Decor',
           value: cakeBudget > 0 ? formatCurrency(cakeBudget, event.currency) : 'Curated',
           subtitle: 'Custom cake, balloons & photographer',
           icon: Cake,
           accentColor: 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100',
-          badge: {
-            text: `${vStats.booked} / ${vStats.total} Booked`,
-            variant: 'warning',
-          },
+          badge: { text: `${vStats.booked} / ${vStats.total} Booked`, variant: 'warning' },
           tabTarget: 'vendors',
         },
       ],
@@ -175,52 +180,24 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
       accentBadge: 'Community Gathering',
       primaryMetricType: 'community',
       statCards: [
-        {
-          title: 'Community Fund / Budget',
-          value: formatCurrency(bStats.totalBudget, event.currency),
-          subtitle: `${formatCurrency(bStats.totalSpent, event.currency)} spent • ${formatCurrency(bStats.remaining, event.currency)} left`,
-          icon: Wallet,
-          accentColor: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-          badge: {
-            text: `${bStats.percentageSpent}% Allocated`,
-            variant: bStats.isOverBudget ? 'danger' : 'success',
-          },
-          tabTarget: 'budget',
-        },
+        makeBudgetCard(bStats, event.currency, 'Community Fund / Budget', 'bg-cyan-50 text-cyan-700 border-cyan-100', 'Allocated'),
         {
           title: 'Registered Delegates',
           value: `${event.guestCount}`,
           subtitle: 'Attendees across all sessions',
           icon: Users,
           accentColor: 'bg-blue-50 text-blue-700 border-blue-100',
-          badge: {
-            text: 'Hall Capacity OK',
-            variant: 'info',
-          },
+          badge: { text: 'Hall Capacity OK', variant: 'info' },
           tabTarget: 'timeline',
         },
-        {
-          title: 'Operations & Volunteers',
-          value: `${tStats.completed} / ${tStats.total}`,
-          subtitle: 'Permissions, soundcheck & badges',
-          icon: ShieldCheck,
-          accentColor: 'bg-teal-50 text-teal-700 border-teal-100',
-          badge: {
-            text: tStats.progressPercent > 50 ? 'On Track' : 'Needs Focus',
-            variant: tStats.progressPercent > 50 ? 'success' : 'warning',
-          },
-          tabTarget: 'timeline',
-        },
+        makeTaskCard(tStats, 'Operations & Volunteers', 'Permissions, soundcheck & badges', ShieldCheck, 'bg-teal-50 text-teal-700 border-teal-100'),
         {
           title: 'Equipment & Facilities',
           value: `${vStats.booked} / ${vStats.total}`,
           subtitle: 'Auditorium, PA sound & catering',
           icon: Store,
           accentColor: 'bg-amber-50 text-amber-700 border-amber-100',
-          badge: {
-            text: `${vStats.booked} Confirmed`,
-            variant: 'warning',
-          },
+          badge: { text: `${vStats.booked} Confirmed`, variant: 'warning' },
           tabTarget: 'vendors',
         },
       ],
@@ -238,52 +215,24 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
       accentBadge: customTitle,
       primaryMetricType: 'custom',
       statCards: [
-        {
-          title: 'Event Budget',
-          value: formatCurrency(bStats.totalBudget, event.currency),
-          subtitle: `${formatCurrency(bStats.totalSpent, event.currency)} spent • ${formatCurrency(bStats.remaining, event.currency)} left`,
-          icon: Wallet,
-          accentColor: 'bg-purple-50 text-purple-600 border-purple-100',
-          badge: {
-            text: `${bStats.percentageSpent}% Spent`,
-            variant: bStats.isOverBudget ? 'danger' : 'success',
-          },
-          tabTarget: 'budget',
-        },
+        makeBudgetCard(bStats, event.currency, 'Event Budget', 'bg-purple-50 text-purple-600 border-purple-100', 'Spent'),
         {
           title: 'Expected Guests',
           value: `${event.guestCount}`,
           subtitle: `Attendees for ${customTitle}`,
           icon: Users,
           accentColor: 'bg-brand-50 text-brand-600 border-brand-100',
-          badge: {
-            text: 'Headcount Set',
-            variant: 'info',
-          },
+          badge: { text: 'Headcount Set', variant: 'info' },
           tabTarget: 'timeline',
         },
-        {
-          title: 'Milestones & Tasks',
-          value: `${tStats.completed} / ${tStats.total}`,
-          subtitle: `${tStats.pending} pending tasks remaining`,
-          icon: CheckSquare,
-          accentColor: 'bg-royal-50 text-royal-600 border-royal-100',
-          badge: {
-            text: tStats.progressPercent > 50 ? 'On Track' : 'Needs Focus',
-            variant: tStats.progressPercent > 50 ? 'success' : 'warning',
-          },
-          tabTarget: 'timeline',
-        },
+        makeTaskCard(tStats, 'Milestones & Tasks', `${tStats.pending} pending tasks remaining`, CheckSquare, 'bg-royal-50 text-royal-600 border-royal-100'),
         {
           title: 'Specialized Vendors',
           value: `${vStats.booked} / ${vStats.total}`,
           subtitle: 'Venues, music, gifts & catering',
           icon: Award,
           accentColor: 'bg-amber-50 text-amber-700 border-amber-100',
-          badge: {
-            text: `${vStats.booked} Confirmed`,
-            variant: 'warning',
-          },
+          badge: { text: `${vStats.booked} Confirmed`, variant: 'warning' },
           tabTarget: 'vendors',
         },
       ],
@@ -298,18 +247,7 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
     accentBadge: 'Wedding Masterplan',
     primaryMetricType: 'wedding',
     statCards: [
-      {
-        title: 'Total Budget',
-        value: formatCurrency(bStats.totalBudget, event.currency),
-        subtitle: `${formatCurrency(bStats.totalSpent, event.currency)} spent • ${formatCurrency(bStats.remaining, event.currency)} left`,
-        icon: Wallet,
-        accentColor: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-        badge: {
-          text: `${bStats.percentageSpent}% Spent`,
-          variant: bStats.isOverBudget ? 'danger' : 'success',
-        },
-        tabTarget: 'budget',
-      },
+      makeBudgetCard(bStats, event.currency, 'Total Budget', 'bg-emerald-50 text-emerald-600 border-emerald-100', 'Spent'),
       {
         title: 'Planning Progress',
         value: `${tStats.progressPercent}%`,
@@ -322,31 +260,16 @@ export function getDashboardConfig(event: EventPlan): DashboardThemeConfig {
         },
         tabTarget: 'timeline',
       },
-      {
-        title: 'Tasks Pipeline',
-        value: `${tStats.completed} / ${tStats.total}`,
-        subtitle: `${tStats.pending} pending • ${tStats.inProgress} in progress`,
-        icon: CheckSquare,
-        accentColor: 'bg-royal-50 text-royal-600 border-royal-100',
-        badge: {
-          text: `${tStats.pending} Remaining`,
-          variant: 'info',
-        },
-        tabTarget: 'timeline',
-      },
+      makeTaskCard(tStats, 'Tasks Pipeline', `${tStats.pending} pending • ${tStats.inProgress} in progress`, CheckSquare, 'bg-royal-50 text-royal-600 border-royal-100'),
       {
         title: 'Vendors Roster',
         value: `${vStats.booked} / ${vStats.total}`,
         subtitle: `${vStats.contacted} contacted • ${vStats.shortlisted} shortlisted`,
         icon: Store,
         accentColor: 'bg-amber-50 text-amber-700 border-amber-100',
-        badge: {
-          text: `${vStats.booked} Confirmed`,
-          variant: 'warning',
-        },
+        badge: { text: `${vStats.booked} Confirmed`, variant: 'warning' },
         tabTarget: 'vendors',
       },
     ],
   };
 }
-

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Store,
   Plus,
   Phone,
   Mail,
@@ -8,14 +7,8 @@ import {
   Edit2,
   Trash2,
   Sparkles,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
   ExternalLink,
   Loader2,
-  Tag,
-  DollarSign,
-  HelpCircle,
 } from 'lucide-react';
 import { EventPlan, Vendor, VendorCategory, VendorStatus } from '../types';
 import { formatCurrency, calculateVendorStats } from '../utils/formatters';

@@ -4,13 +4,11 @@ import {
   Calendar,
   Plus,
   Layers,
-  Key,
   Menu,
   X,
   ChevronDown,
   RotateCcw,
   ShieldCheck,
-  User,
   LogOut,
 } from 'lucide-react';
 import { EventPlan, UserProfile } from '../../types';

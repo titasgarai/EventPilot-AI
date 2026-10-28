@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from './Modal';
-import { Sparkles, Loader2, CheckCircle2, TrendingUp, AlertCircle, MapPin, Users, HelpCircle, Monitor, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { BudgetEstimateResult, CurrencyCode, EventFormat, EventStyle, EventType } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { estimateBudgetWithAI } from '../../services/gemini';

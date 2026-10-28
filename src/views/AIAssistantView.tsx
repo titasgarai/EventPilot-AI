@@ -5,17 +5,10 @@ import {
   Sparkles,
   User,
   Trash2,
-  HelpCircle,
-  TrendingDown,
-  Clock,
-  Store,
-  Lightbulb,
-  CheckCircle2,
   Loader2,
-  Calendar,
 } from 'lucide-react';
 import { EventPlan, ChatMessage } from '../types';
-import { formatCurrency, calculateBudgetStats, calculateTaskStats } from '../utils/formatters';
+import { formatCurrency, calculateBudgetStats } from '../utils/formatters';
 import { askEventPilotAssistant } from '../services/gemini';
 import { useToast } from '../components/common/Toast';
 
@@ -47,7 +40,6 @@ How can I help you optimize, sequence, or troubleshoot your event plan today?`,
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const budgetStats = calculateBudgetStats(event);
-  const taskStats = calculateTaskStats(event);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

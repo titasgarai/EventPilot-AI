@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from './Modal';
-import { Key, Sparkles, CheckCircle2, ExternalLink, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Key, Sparkles, ExternalLink, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { getCustomApiKey, setCustomApiKey } from '../../utils/storage';
 import { getEffectiveApiKey } from '../../services/gemini';
 import { useToast } from './Toast';

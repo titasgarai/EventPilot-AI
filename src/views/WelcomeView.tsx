@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, User, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowRight, User, Mail, ShieldCheck } from 'lucide-react';
 import { UserProfile } from '../types';
 import { saveUserProfile } from '../utils/storage';
 

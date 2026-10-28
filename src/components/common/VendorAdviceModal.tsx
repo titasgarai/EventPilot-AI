@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from './Modal';
-import { Sparkles, Loader2, CheckCircle2, HelpCircle, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Sparkles, Loader2, HelpCircle, ArrowRight } from 'lucide-react';
 import { EventPlan, VendorAdviceResult, VendorCategory } from '../../types';
 import { getVendorAdviceWithAI } from '../../services/gemini';
 import { useToast } from './Toast';

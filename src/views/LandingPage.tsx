@@ -5,14 +5,7 @@ import {
   Wallet,
   Clock,
   Lightbulb,
-  CheckCircle2,
-  Calendar,
-  Users,
   ShieldCheck,
-  ChevronRight,
-  TrendingUp,
-  Store,
-  Bot,
 } from 'lucide-react';
 import { EventPlan } from '../types';
 import { formatCurrency } from '../utils/formatters';

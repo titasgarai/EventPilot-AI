@@ -3,12 +3,9 @@ import { Modal } from '../common/Modal';
 import { EventPlan } from '../../types';
 import { formatCurrency, formatDate, getDaysRemaining, calculateTaskStats } from '../../utils/formatters';
 import {
-  Calendar,
   Copy,
   Trash2,
-  ExternalLink,
   Plus,
-  Sparkles,
   MapPin,
   Users,
 } from 'lucide-react';

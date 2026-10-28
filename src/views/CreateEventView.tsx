@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState } from 'react';
 import {
   Calendar,
   Sparkles,
@@ -7,21 +7,9 @@ import {
   Users,
   MapPin,
   Wallet,
-  Palette,
-  MessageSquare,
   Check,
   CheckCircle2,
-  DollarSign,
-  HeartHandshake,
-  Cake,
-  Building2,
-  HelpCircle,
-  Lightbulb,
   Monitor,
-  Video,
-  Globe,
-  Radio,
-  Clock,
 } from 'lucide-react';
 import {
   EventType,
