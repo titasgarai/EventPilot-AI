@@ -67,7 +67,7 @@ export function isAiConfigured(): boolean {
 /**
  * Clean and parse JSON response from Gemini, handling markdown code fences.
  */
-function cleanAndParseJson<T>(raw: string): T {
+export function cleanAndParseJson<T>(raw: string): T {
   let cleaned = raw.trim();
   // Strip ```json ... ``` or ``` ... ```
   if (cleaned.startsWith('```')) {

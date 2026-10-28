@@ -37,6 +37,13 @@ export function getDaysRemaining(dateString: string): { days: number; isPast: bo
   }
 }
 
+export function calculateCostPerGuest(totalBudget: number, guestCount: number): number {
+  if (!guestCount || guestCount <= 0 || !totalBudget || totalBudget <= 0) {
+    return 0;
+  }
+  return Math.round(totalBudget / guestCount);
+}
+
 export function calculateBudgetStats(event: EventPlan) {
   const totalBudget = event.totalBudget || 0;
   
